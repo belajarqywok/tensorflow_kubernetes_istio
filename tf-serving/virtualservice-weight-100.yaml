@@ -1,0 +1,25 @@
+apiVersion: networking.istio.io/v1alpha3
+kind: VirtualService
+metadata: # kpt-merge: /image-classifier
+  name: image-classifier
+  annotations:
+    internal.kpt.dev/upstream-identifier: 'networking.istio.io|VirtualService|default|image-classifier'
+spec:
+  hosts:
+  - "*"
+  gateways:
+  - image-classifier-gateway
+  http:
+  - route:
+    - destination:
+        host: image-classifier
+        subset: resnet50
+        port:
+          number: 8501
+      weight: 100
+    - destination:
+        host: image-classifier
+        subset: resnet101
+        port:
+          number: 8501
+      weight: 0

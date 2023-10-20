@@ -1,0 +1,18 @@
+apiVersion: kpt.dev/v1
+kind: Kptfile
+metadata:
+  name: tfserving-canary
+upstream:
+  type: git
+  git:
+    repo: https://github.com/GoogleCloudPlatform/mlops-on-gcp
+    directory: /workshops/mlep-qwiklabs/tfserving-canary-gke
+    ref: master
+  updateStrategy: resource-merge
+upstreamLock:
+  type: git
+  git:
+    repo: https://github.com/GoogleCloudPlatform/mlops-on-gcp
+    directory: /workshops/mlep-qwiklabs/tfserving-canary-gke
+    ref: master
+    commit: acd02805c09841f3af181ed412eb195a2d7103e8

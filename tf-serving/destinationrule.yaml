@@ -1,0 +1,15 @@
+apiVersion: networking.istio.io/v1alpha3
+kind: DestinationRule
+metadata: # kpt-merge: /image-classifier
+  name: image-classifier
+  annotations:
+    internal.kpt.dev/upstream-identifier: 'networking.istio.io|DestinationRule|default|image-classifier'
+spec:
+  host: image-classifier
+  subsets:
+  - name: resnet101
+    labels:
+      version: resnet101
+  - name: resnet50
+    labels:
+      version: resnet50

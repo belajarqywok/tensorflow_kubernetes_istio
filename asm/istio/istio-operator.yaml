@@ -1,0 +1,97 @@
+apiVersion: install.istio.io/v1alpha1
+kind: IstioOperator
+spec:
+  profile: empty
+  hub: gke.gcr.io/asm # {"$ref":"#/definitions/io.k8s.cli.setters.anthos.servicemesh.hub"}
+  tag: 1.15.7-asm.23 # {"$ref":"#/definitions/io.k8s.cli.setters.anthos.servicemesh.tag"}
+  meshConfig:
+    trustDomainAliases: # {"$ref":"#/definitions/io.k8s.cli.setters.anthos.servicemesh.trustDomainAliases"}
+    - "qwiklabs-gcp-04-08a88f0e68d5.svc.id.goog"
+    - "qwiklabs-gcp-04-08a88f0e68d5.hub.id.goog"
+    trustDomain: qwiklabs-gcp-04-08a88f0e68d5.svc.id.goog # {"$ref":"#/definitions/io.k8s.cli.setters.anthos.servicemesh.trustDomain"}
+    defaultConfig:
+      proxyMetadata:
+        GKE_CLUSTER_URL: "https://container.googleapis.com/v1/projects/qwiklabs-gcp-04-08a88f0e68d5/locations/us-west1-c/clusters/cluster-1" # {"$ref":"#/definitions/io.k8s.cli.setters.anthos.servicemesh.idp-url"}
+        GCP_METADATA: "qwiklabs-gcp-04-08a88f0e68d5|569213987880|cluster-1|us-west1-c" # {"$ref":"#/definitions/io.k8s.cli.substitutions.gke-metadata"}
+        CA_PROVIDER: "GoogleCA"
+        PLUGINS: "GoogleTokenExchange"
+        USE_TOKEN_FOR_CSR: "true"
+        GCE_METADATA_HOST: "metadata.google.internal"
+    # Locality load balancing is not supported
+    localityLbSetting:
+      enabled: false
+  components:
+    base:
+      enabled: true
+    egressGateways:
+    - enabled: false
+      name: istio-egressgateway
+      k8s:
+        hpaSpec:
+          maxReplicas: 5
+          minReplicas: 2
+    ingressGateways:
+    - enabled: false
+      name: istio-ingressgateway
+      k8s:
+        hpaSpec:
+          maxReplicas: 5
+          minReplicas: 2
+    # The default profile is tuned to fit on smaller clusters.
+    # Increase cpu req to ensure we can handle larger scale clusters.
+    pilot:
+      enabled: true
+      k8s:
+        resources:
+          requests:
+            cpu: 500m
+        hpaSpec:
+          minReplicas: 2
+        replicaCount: 2
+        env:
+        - name: GKE_CLUSTER_URL
+          value: "https://container.googleapis.com/v1/projects/qwiklabs-gcp-04-08a88f0e68d5/locations/us-west1-c/clusters/cluster-1" # {"$ref":"#/definitions/io.k8s.cli.setters.anthos.servicemesh.idp-url"}
+        - name: GCP_METADATA
+          value: "qwiklabs-gcp-04-08a88f0e68d5|569213987880|cluster-1|us-west1-c" # {"$ref":"#/definitions/io.k8s.cli.substitutions.gke-metadata"}
+        - name: ENABLE_STACKDRIVER_MONITORING
+          value: "true" # {"$ref":"#/definitions/io.k8s.cli.setters.anthos.servicemesh.controlplane.monitoring.enabled"}
+        - name: TOKEN_AUDIENCES
+          value: "istio-ca,qwiklabs-gcp-04-08a88f0e68d5.svc.id.goog" # {"$ref":"#/definitions/io.k8s.cli.substitutions.token-audiences"}
+        - name: PILOT_ENABLE_CROSS_CLUSTER_WORKLOAD_ENTRY
+          value: "true"
+  values:
+    # Enable telemetry v2 backend by Stackdriver.
+    # Prometheus is also supported with --set values.telemetry.v2.prometheus.enabled=true --set prometheus.enabled=true
+    telemetry:
+      enabled: true
+      v2:
+        enabled: true
+        prometheus:
+          enabled: false
+        stackdriver:
+          enabled: true
+          inboundAccessLogging: "FULL"
+          outboundAccessLogging: "ERRORS_ONLY"
+          topology: true
+    sidecarInjectorWebhook:
+      rewriteAppHTTPProbe: true
+    global:
+      caAddress: "meshca.googleapis.com:443"
+      pilotCertProvider: kubernetes
+      sts:
+        servicePort: 15463
+      sds:
+        token:
+          aud: "qwiklabs-gcp-04-08a88f0e68d5.svc.id.goog" # {"$ref":"#/definitions/io.k8s.cli.setters.anthos.servicemesh.trustDomain"}
+      multiCluster:
+        # Provided to ensure a human readable name rather than a UUID.
+        clusterName: "cn-qwiklabs-gcp-04-08a88f0e68d5-us-west1-c-cluster-1" # {"$ref":"#/definitions/io.k8s.cli.substitutions.cluster-name"}
+      meshID: "proj-569213987880" # {"$ref":"#/definitions/io.k8s.cli.substitutions.mesh-id"}
+      network: "qwiklabs-gcp-04-08a88f0e68d5-default" # {"$ref":"#/definitions/io.k8s.cli.setters.gcloud.compute.network"}
+    gateways:
+      istio-ingressgateway:
+        # Enable gateway injection
+        injectionTemplate: gateway
+      istio-egressgateway:
+        # Enable gateway injection
+        injectionTemplate: gateway
